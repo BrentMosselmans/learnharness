@@ -6,10 +6,34 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 import { describe, it } from "node:test";
 import { BATCH_FRAMES, DICTATION_NO_MODEL, concatFrames, sttFailure } from "../components/dictation.tsx";
 
 describe("concatFrames", () => {
+	it("preserves PCM bytes from the actual worklet through upload batching", () => {
+		const frames: ArrayBuffer[] = [];
+		let Processor!: new () => { process(inputs: Float32Array[][]): boolean };
+		runInNewContext(readFileSync(new URL("../public/worklets/pcm-capture.js", import.meta.url), "utf8"), {
+			AudioWorkletProcessor: class {
+				port = { postMessage(message: { type: string; buffer?: ArrayBuffer }, transfer: ArrayBuffer[] = []) {
+					const received = structuredClone(message, { transfer });
+					if (received.type === "audio") frames.push(received.buffer!);
+				} };
+			},
+			registerProcessor: (_name: string, ctor: typeof Processor) => { Processor = ctor; },
+		});
+		const processor = new Processor();
+		const samples = Float32Array.from({ length: 4096 }, (_, i) => i % 2 ? -0.5 : 0.5);
+		for (let i = 0; i < samples.length; i += 128) processor.process([[samples.slice(i, i + 128)]]);
+		assert.equal(frames.length, 2);
+		const body = concatFrames(frames);
+		assert.equal(body.byteLength, samples.length * 2);
+		const view = new DataView(body.buffer);
+		for (let i = 0; i < samples.length; i++) assert.equal(view.getInt16(i * 2, true), i % 2 ? -16384 : 16383);
+	});
+
 	it("joins worklet frames in order", () => {
 		const a = new Int16Array([1, 2]).buffer;
 		const b = new Int16Array([3]).buffer;
