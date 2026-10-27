@@ -683,6 +683,8 @@ async function main() {
 		log(`server up: ${url}`);
 	} else {
 		log(`dev mode: ${devUrl}`);
+		await waitUntilUp(url);
+		log(`dev server up: ${url}`);
 	}
 
 	// Renderer controls contain no token/URL/code operation. The separate server

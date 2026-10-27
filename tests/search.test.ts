@@ -11,7 +11,43 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { resolveSearchEngineFor, tavilyProvider, braveProvider } from "../src/server/search.ts";
+import { resolveSearchEngineFor, tavilyProvider, braveProvider, exaProvider } from "../src/server/search.ts";
+
+describe("Exa search", () => {
+	it("activates with only its key, honors a pin, and reports a missing key without fallback", () => {
+		assert.equal(resolveSearchEngineFor(undefined, { exa: "test-key" }).engine, "exa");
+		assert.equal(resolveSearchEngineFor("exa", { exa: "test-key", tavily: "other" }).engine, "exa");
+		const missing = resolveSearchEngineFor("exa", { tavily: "other" });
+		assert.equal(missing.available, false);
+		assert.match(missing.reason, /EXA_API_KEY/);
+	});
+
+	it("requests highlights, bounds count, and maps source URLs and snippets", async () => {
+		const provider = exaProvider("test-key", stubFetch({ results: [
+			{ title: "Study", url: "https://example.com/study", highlights: ["First\nline", "Second"] },
+			{ url: "https://example.com/no-text" },
+			{ title: "Missing URL" },
+			{ url: "javascript:alert(1)" },
+		] }, (url, init) => {
+			assert.equal(url, "https://api.exa.ai/search");
+			assert.equal(init.method, "POST");
+			assert.equal(new Headers(init.headers).get("x-api-key"), "test-key");
+			assert.deepEqual(JSON.parse(init.body as string), { query: "learning", type: "auto", numResults: 20, contents: { highlights: true } });
+			assert.ok(init.signal);
+		}));
+		assert.deepEqual(await provider.search("learning", 100), [
+			{ title: "Study", url: "https://example.com/study", snippet: "First line Second" },
+			{ title: "https://example.com/no-text", url: "https://example.com/no-text", snippet: "" },
+		]);
+	});
+
+	it("reports API failures without echoing response bodies or credentials", async () => {
+		for (const status of [401, 402, 429, 500]) {
+			const provider = exaProvider("secret", async () => new Response("secret", { status }));
+			await assert.rejects(provider.search("learning", 5), { message: `Exa search API ${status}: request failed` });
+		}
+	});
+});
 
 describe("resolveSearchEngineFor (the auto-detect decision)", () => {
 	it("no keys: honestly unavailable, no default", () => {

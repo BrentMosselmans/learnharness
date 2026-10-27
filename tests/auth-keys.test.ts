@@ -2,7 +2,7 @@
  * The curated auth-key catalog + shape rules (auth-keys wave, 2026-09-19;
  * search wave 2026-09-20: the Google CSE pair retired, Tavily + Brave in)
  * — PURE module, so this file owns no fs. Owner decisions being pinned:
- *  - the catalog is exactly the three known keys, ids = env-var names;
+ *  - the catalog is exactly the four known keys, ids = env-var names;
  *  - validation is SHAPE-ONLY (no live pings) and bad pastes are 400s;
  *  - masking is last-4 + length — plaintext never leaves the store.
  */
@@ -12,10 +12,10 @@ import { describe, it } from "node:test";
 import { AUTH_KEYS, genericProviderKeyGuard, isKnownAuthKey, maskKey, validateKeyShape } from "../src/core/auth-keys.ts";
 
 describe("the catalog", () => {
-	it("is exactly the three CURATED app-service keys (provider keys live in the provider table)", () => {
+	it("is exactly the four CURATED app-service keys (provider keys live in the provider table)", () => {
 		assert.deepEqual(
 			AUTH_KEYS.map((k) => k.id),
-			["DEEPGRAM_API_KEY", "TAVILY_API_KEY", "BRAVE_API_KEY"],
+			["DEEPGRAM_API_KEY", "TAVILY_API_KEY", "BRAVE_API_KEY", "EXA_API_KEY"],
 		);
 		for (const k of AUTH_KEYS) {
 			assert.ok(k.label.length > 0, `${k.id} has a label`);
@@ -34,6 +34,9 @@ describe("the catalog", () => {
 		assert.ok(isKnownAuthKey("DEEPGRAM_API_KEY"));
 		assert.ok(isKnownAuthKey("TAVILY_API_KEY"));
 		assert.ok(isKnownAuthKey("BRAVE_API_KEY"));
+		assert.ok(isKnownAuthKey("EXA_API_KEY"));
+		assert.ok(validateKeyShape("EXA_API_KEY", "test-exa-key-0123456789").ok);
+		assert.ok(!validateKeyShape("EXA_API_KEY", "bad key").ok);
 		assert.ok(!isKnownAuthKey("OPENROUTER_API_KEY"));
 		assert.ok(!isKnownAuthKey("OPENAI_API_KEY"), "provider vars are a separate surface");
 		assert.ok(!isKnownAuthKey("FUTURE_PLANS_TOKEN"));
