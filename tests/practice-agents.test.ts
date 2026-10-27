@@ -269,7 +269,7 @@ describe("research-informed practice policy", () => {
 		assert.match(prompt, /solvedWithHints/);
 		assert.match(prompt, /An explanation supplied by you does not become a learner-produced solution/);
 		assert.match(prompt, /A same-session retest checks repair/);
-		assert.match(prompt, /it does not schedule a future session/);
+		assert.match(prompt, /queue proposes a next review/);
 		assert.match(prompt, /Immediate|immediately after instruction/);
 	});
 

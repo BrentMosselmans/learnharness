@@ -211,7 +211,7 @@ describe("the thinking input", () => {
 		assert.equal(marker.customType, "practice-thinking");
 		// The single label (owner round 2, 2026-10-05): the register is read
 		// from the text by the agent, never declared by a button.
-		assert.match(marker.content, /Your thinking:\n/);
+		assert.match(marker.content, /Your thinking: \[submission [^\]]+\]\n/);
 		assert.deepEqual(marker.details, {
 			problemCallId: "call_p1",
 			text: "I think the inactivity constraint applies here",
@@ -316,7 +316,7 @@ describe("toLlmMessages (practice shapes)", () => {
 		assert.equal(out.length, 1);
 		const user = out[0] as { role: string; content: Array<{ type: string; text: string }> };
 		assert.equal(user.role, "user");
-		assert.match(user.content[0]!.text, /^Your thinking:\nIt is 42$/);
+		assert.match(user.content[0]!.text, /^Your thinking: \[submission [^\]]+\]\nIt is 42$/);
 	});
 
 	it("the dismissal marker is UI-only (the synthesized pair carries the face)", () => {

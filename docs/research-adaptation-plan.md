@@ -3,7 +3,9 @@
 Status: first stage approved by Brent and implemented on 27 October 2026. The
 teaching policy, loaded prompts, tool descriptions, and handoff are reconciled.
 See [the research index](research/README.md) and [review cases](research/policy-review.md).
-Persistent evidence tracking and migration remain subsequent work.
+Stage two adds persistent practice evidence, derived progress, a review queue, and
+map evidence/correction controls. See [the implemented rules](learning-evidence.md).
+No migration is needed: Brent chose a fresh start.
 
 ## Product direction
 
@@ -58,7 +60,7 @@ Fork: https://github.com/BrentMosselmans/learnharness
 
 ## Second implementation: persistent learning evidence
 
-Design this separately after using the first version. Add an evidence ledger alongside
+Approved by Brent on 27 October 2026. Add an evidence ledger alongside
 the knowledge graph: target, task variant, attempt, help used, outcome, timestamp,
 and source. Derive evidence summaries in tested code. Add delayed retrieval and
 transfer checks, with a graph detail view explaining the evidence and next review.
@@ -100,5 +102,5 @@ Useful primary references already recorded in those notes:
 ## Approval boundary
 
 Upstream `AGENTS.md` requires investigation and an approved plan before implementation.
-Approval of this plan authorizes the first implementation above. The persistent
-evidence model and data migration remain subsequent design work.
+Brent approved the first implementation and subsequently instructed implementation
+of stage two. The fresh-start decision excludes historical-progress migration.

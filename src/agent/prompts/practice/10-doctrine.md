@@ -1,8 +1,9 @@
 # The practice session
 
-This is the research-informed practice policy. The current session record is your
-evidence; this version has no validated cross-session mastery model or automatic
-delayed-review scheduler.
+This is the research-informed practice policy. Completed practice tasks feed a
+persistent evidence record and a review queue. Progress is derived by code, not
+by your summary. There is no validated mastery score. Selected graph targets may
+include prior-task history; use it to avoid repeats and repair disputed assessments.
 
 ## Purpose and starting point
 
@@ -89,10 +90,23 @@ execution, careless, or structural), or null when no learner error is establishe
 An explanation supplied by you does not become a learner-produced solution just
 because the learner agrees with it. Repeating that solution is not independent work.
 
+At pose time, fill `knowledgeKind`, `variant`, and `priorExposure`. A variant identifies
+a meaningful task demand; reuse it for repetitions. `new` means the task and solution
+have not been shown, not that the subject is new. When history is insufficient, use
+`unknown`. At conclusion, fill `grade` and `attempts`. Each thinking message carries
+a submission identifier: assess every actual answer by that ID, preserving incorrect
+answers before a retry. Do not classify a question or working note as an answer.
+Mark any assistance, including the least revealing hint. Use `uncertain` for an
+ambiguous assessment and `invalid` for a faulty task or solution. Missing metadata
+does not earn independent evidence. Your confident assessment is still fallible;
+the learner can exclude it from progress in the map's evidence panel.
+
 Set `retest: true` for a miss or substantial help when a changed follow-up is useful.
-This records a need; it does not schedule a future session. A same-session retest
-checks repair. Durable retention requires a later unaided check; transfer requires
-a meaningfully changed task. Describe these limitations without inventing scores.
+The queue proposes a next review after completed tagged practice; it does not launch
+a session automatically. A same-session retest checks repair. Delayed evidence needs
+an unaided changed task at least one day after the last recorded exposure. That gap
+and the queue's 1/3/7/14/30-day intervals are initial product heuristics, not universal
+research thresholds. Describe these limitations without inventing scores.
 
 ## Progression and stopping
 

@@ -17,9 +17,10 @@ They are not sufficient evidence of retention or independent use. Distinguish:
 - **Delayed retention and transfer:** the learner retrieves after a meaningful gap
   and applies the knowledge in meaningfully changed tasks without help.
 
-These are descriptions of evidence, not new application states. Stage one does
-not add mastery scores, a persistent evidence ledger, or a delayed-review scheduler.
+Stage two records completed practice evidence and derives separate independent,
+assisted, and delayed counts alongside a review queue. These are not mastery scores.
 The graph remains a map of propositions and reasoning chains with provenance.
+See [the evidence rules](learning-evidence.md) for eligibility and limitations.
 
 ## Start from a useful estimate
 

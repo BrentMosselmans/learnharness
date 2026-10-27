@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeftIcon, DumbbellIcon } from "lucide-react";
 import { GraphView } from "@/components/graph-view";
+import { LearningReview, type ReviewPick } from "@/components/learning-review";
 import { MinimalHome } from "@/components/minimal-home";
 import { SetupDialog } from "@/components/setup-dialog";
 import { ComposerActions, NodePickerControl } from "@/components/composer-actions";
@@ -97,6 +98,16 @@ export function Home({
 	const [chainSelectOpen, setChainSelectOpen] = useState(false);
 	// The chain table is CONTROLLED off this id set (the lifted pick).
 	const pickedIds = useMemo(() => new Set(practiceProps.map((p) => p.id)), [practiceProps]);
+	const prepareReview = (node: ReviewPick, kind: "recall" | "changed-task") => {
+		const prompt = kind === "recall"
+			? `Review ${node.name} with a short unaided recall task for the selected fact. Check the answer before giving feedback.`
+			: `Review ${node.name} with a meaningfully changed application task. Invite an unaided attempt before offering help.`;
+		setMode("practice");
+		setPracticeProps([node]);
+		topicRef.current = prompt;
+		setTopic(prompt);
+		topicInputRef.current?.focus();
+	};
 
 	/* FINISH DICTATION FIRST (owner, 2026-10-01): Enter may arrive while a
 	 * run is live with the topic still deferred in the run's buffer — stop
@@ -179,6 +190,7 @@ export function Home({
 			<main className="absolute inset-0">
 				{rendering ? (
 					<GraphView
+						onReview={prepareReview}
 						chainSelectOpen={chainSelectOpen}
 						practiceSelection={pickedIds}
 						onPracticeSelectionChange={setPracticeProps}
@@ -203,6 +215,7 @@ export function Home({
 				<div className="pointer-events-auto">
 					<SidebarToggle />
 				</div>
+				<div className="pointer-events-auto"><LearningReview onPractice={prepareReview} /></div>
 			</header>
 
 			{/* New session — same floating blob as the chat composer, docked

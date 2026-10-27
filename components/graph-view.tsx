@@ -1,4 +1,5 @@
 "use client";
+import { LearningReview, type ReviewPick } from "@/components/learning-review";
 
 /**
  * The home knowledge-graph view (W4; vision §1 "Rendering (DECIDED)").
@@ -959,11 +960,13 @@ export function GraphChromeRow({
 }
 
 export function GraphView({
+	onReview,
 	chainSelectOpen = false,
 	practiceSelection,
 	onPracticeSelectionChange,
 	onChainSelectClose,
 }: {
+	onReview?: (node: ReviewPick, kind: "recall" | "changed-task") => void;
 	/** PRACTICE SELECT (owner vision, 2026-10-04): the LIFTED, persistent
 	 *  pick set — every check/clear in the chain table (however opened)
 	 *  reports the full node list up immediately; the composer-side chip
@@ -1474,21 +1477,27 @@ export function GraphView({
 		const card = cardRef.current;
 		const container = containerRef.current;
 		if (!selected || !card || !container) return;
-		const width = card.offsetWidth;
-		const height = card.offsetHeight;
-		const margin = 8;
-		const gap = 12;
-		const left = Math.min(
-			Math.max(selected.anchor.x - width / 2, margin),
-			Math.max(container.clientWidth - width - margin, margin),
-		);
-		let top = selected.anchor.y + gap;
-		if (top + height > container.clientHeight - margin) {
-			top = Math.max(selected.anchor.y - gap - height, margin);
-		}
-		card.style.left = `${left}px`;
-		card.style.top = `${top}px`;
-		card.style.visibility = "visible";
+		const place = () => {
+			const width = card.offsetWidth;
+			const height = card.offsetHeight;
+			const margin = 8;
+			const gap = 12;
+			const left = Math.min(
+				Math.max(selected.anchor.x - width / 2, margin),
+				Math.max(container.clientWidth - width - margin, margin),
+			);
+			let top = selected.anchor.y + gap;
+			if (top + height > container.clientHeight - margin) {
+				top = Math.max(selected.anchor.y - gap - height, margin);
+			}
+			card.style.left = `${left}px`;
+			card.style.top = `${top}px`;
+			card.style.visibility = "visible";
+		};
+		place();
+		const observer = new ResizeObserver(place);
+		observer.observe(card);
+		return () => observer.disconnect();
 	}, [selected]);
 
 	return (
@@ -1646,10 +1655,11 @@ export function GraphView({
 					// lh-no-drag: the card is placed anywhere on the canvas —
 					// when it lands in the top strip it must stay interactive
 					// over home.tsx's drag surface (2026-09-17).
-					className="lh-no-drag absolute z-10 w-80 max-w-[calc(100%-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
+					className="lh-no-drag absolute z-10 max-h-[65vh] overflow-y-auto w-80 max-w-[calc(100%-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
 				>
 					<div className="text-sm font-medium leading-snug">{selected.node.name}</div>
 					<div className="mt-1 text-xs leading-relaxed text-muted-foreground">{selected.node.statement}</div>
+					{snapshot?.propositions.some(n => n.id === selected.node.id) && <LearningReview key={selected.node.id} nodeId={selected.node.id} onPractice={onReview} />}
 					{selected.sourceIds.length > 0 ? (
 						<div className="mt-3 flex flex-col gap-1">
 							<div className="text-xs text-muted-foreground">Sessions</div>

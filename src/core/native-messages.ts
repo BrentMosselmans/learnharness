@@ -293,11 +293,12 @@ export function newGraphContextMessage(picks: readonly GraphContextPick[], chain
  *  payload for the transcript card. One problem may carry many
  *  submissions. */
 export function newThinkingMessage(problemCallId: string, text: string): LhMarkerMessage {
+	const id = newMessageId();
 	return {
-		id: newMessageId(),
+		id,
 		role: "custom",
 		customType: "practice-thinking",
-		content: `${THINKING_LABEL}:\n${text}`,
+		content: `${THINKING_LABEL}: [submission ${id}]\n${text}`,
 		display: true,
 		details: { problemCallId, text },
 		timestamp: Date.now(),

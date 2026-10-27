@@ -70,6 +70,9 @@ export function createPracticeGate(ctx: PracticeToolContext): PracticeGate {
 // ─── problem: the pose ───────────────────────────────────────────────────────
 
 export const problemInputObject = Type.Object({
+	knowledgeKind: Type.Optional(Type.Union([Type.Literal("fact"), Type.Literal("concept"), Type.Literal("procedure")], { description: "Classify the learning target. Recall is selective for facts; concepts and procedures need changed tasks." })),
+	variant: Type.Optional(Type.String({ description: "Stable short identifier for this task variant. Reuse for repeats; change only for meaningfully different demands, not cosmetic wording." })),
+	priorExposure: Type.Optional(Type.Union([Type.Literal("new"), Type.Literal("seen"), Type.Literal("unknown")], { description: "Has this learner already seen this task or its solution? Use unknown if unsure. New means new task, not new subject." })),
 	statement: Type.String({
 		description:
 			"REQUIRED — the problem as the learner sees it (markdown + LaTeX). Must be self-contained and " +
@@ -163,6 +166,12 @@ export function problemTool(
 // ─── conclude: the end of a problem ──────────────────────────────────────────
 
 export const concludeInputObject = Type.Object({
+	grade: Type.Optional(Type.Union([Type.Literal("confident"), Type.Literal("uncertain"), Type.Literal("invalid")], { description: "Confident only after checking the answer and committed solution; uncertain for ambiguous grading; invalid for a faulty problem or key. This is still an AI judgement." })),
+	attempts: Type.Optional(Type.Array(Type.Object({
+		submissionId: Type.String({ description: "The submission identifier printed in the learner's thinking message." }),
+		result: Type.Union([Type.Literal("correct"), Type.Literal("incorrect"), Type.Literal("uncertain")]),
+		assisted: Type.Boolean({ description: "True if any task-specific help preceded this answer, including R0/R1 or a supplied worked step." }),
+	}), { description: "Assess each actual answer submission, including failed answers before a retry. Omit thinking-only messages. Never silently replace earlier failures with the final success." })),
 	outcome: Type.Union(
 		[
 			Type.Literal("solved"),

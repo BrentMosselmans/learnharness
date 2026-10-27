@@ -17,6 +17,7 @@ import { CURRENT_CHAT_VERSION } from "../core/contracts.ts";
 import type { LhMessage } from "../core/native-messages.ts";
 import { activeProblemOf, danglingQuestionOf } from "../core/native-messages.ts";
 import { phaseAt3Lh } from "../core/phases.ts";
+import { appendLearningEvidence, collectLearningEvidence, type EvidenceCorrection } from "../core/learning-evidence.ts";
 
 function chatFile(id: string): string {
 	if (!/^[A-Za-z0-9_-]+$/.test(id)) throw new Error(`Invalid chat id: ${id}`);
@@ -55,7 +56,10 @@ function createChat(title: string, kind?: "practice"): ChatRecord {
  *  lazy migration means existing files only get stamped on their next write.
  *  A future-version guard lives on the read side (getChat). */
 function writeChat(record: ChatRecord): void {
-	fs.writeFileSync(chatFile(record.id), JSON.stringify({ ...record, version: CURRENT_CHAT_VERSION }, null, "\t"), "utf-8");
+	const destination = chatFile(record.id);
+	const temporary = `${destination}.tmp`;
+	fs.writeFileSync(temporary, JSON.stringify({ ...record, version: CURRENT_CHAT_VERSION }, null, "\t"), "utf-8");
+	fs.renameSync(temporary, destination);
 }
 
 function getChat(id: string): ChatRecord | null {
@@ -84,7 +88,7 @@ function listChats(): ChatSummary[] {
 			.filter((f) => f.endsWith(".json"))
 			.map((f) => getChat(f.slice(0, -5)))
 			.filter((r): r is ChatRecord => r !== null)
-			.map(({ messages, tree, turns, extractions, ...summary }) => {
+			.map(({ messages, tree, turns, extractions, learningEvidence, evidenceCorrections, ...summary }) => {
 				// Per-record isolation (Wave B): a record whose messages fail the
 				// projection (e.g. pre-Wave-B UIMessage-format scratch — the
 				// zero-back-compat wipe makes these "corrupt") must not blank the
@@ -127,6 +131,9 @@ function saveMessages(id: string, messages: LhMessage[]): void {
 	const record = getChat(id);
 	if (!record) throw new Error(`Chat not found: ${id}`);
 	record.messages = messages;
+	if (record.kind === "practice") {
+		record.learningEvidence = appendLearningEvidence(record.learningEvidence ?? [], collectLearningEvidence(id, messages));
+	}
 	record.updatedAt = new Date().toISOString();
 	writeChat(record);
 }
@@ -205,7 +212,15 @@ function saveTree(id: string, tree: PlanTree): void {
 	writeChat(record);
 }
 
-export const chatStore: ChatStore = {
+function correctEvidence(id: string, correction: EvidenceCorrection): void {
+	const record = getChat(id);
+	if (!record?.learningEvidence?.some(e => e.id === correction.evidenceId)) throw new Error("Evidence not found");
+	record.evidenceCorrections = [...(record.evidenceCorrections ?? []), correction];
+	writeChat(record);
+}
+
+export const chatStore: ChatStore & { correctEvidence(id: string, correction: EvidenceCorrection): void } = {
+	correctEvidence,
 	createChat,
 	getChat,
 	listChats,

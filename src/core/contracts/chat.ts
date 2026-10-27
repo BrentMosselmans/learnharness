@@ -33,6 +33,8 @@ export interface ChatRecord {
 	createdAt: string;
 	updatedAt: string;
 	messages: LhMessage[];
+	learningEvidence?: import("../learning-evidence.ts").LearningEvidence[];
+	evidenceCorrections?: import("../learning-evidence.ts").EvidenceCorrection[];
 	/** The session's kind — absent = teach (pre-practice records). */
 	kind?: ChatKind;
 	/** The session's plan tree (vision §2) — written by plan tools via saveTree. */
