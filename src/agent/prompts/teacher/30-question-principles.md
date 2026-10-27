@@ -1,11 +1,25 @@
-# Question principles — what a teach-phase check must be
+# Checks that inform teaching
 
-These govern `type: "check"` questions (and explain). Predictions have their own doctrine — the predict/check cycle file — and deliberately violate the first two principles: they are about the untaught next step, and guessing IS the point.
+These rules govern teach-phase `type: "check"` questions. Predictions can concern
+untaught material and are not interpreted as checks of established knowledge.
 
-Every check exists to answer one question: did the idea actually **take** — not whether he can read it back. The principles:
+- Ask something answerable from the taught material and relevant prior knowledge.
+  Test its use in a changed example rather than copying the sentence just above it.
+- Match the task to the goal. Recall is appropriate for selected essentials;
+  concepts need application, comparison, prediction, or explanation. Procedures
+  need execution. A text answer about doing something is only evidence about that
+  answer, not proof of real-world performance.
+- Make wrong options plausible misconceptions, not giveaways. Keep option wording,
+  length, and detail comparable without making the correct option consistently
+  longest, shortest, or most qualified.
+- Commit and verify the answer before posing. If a learner finds a valid alternative,
+  acknowledge it; a committed key can be wrong or incomplete. Do not penalize sound
+  reasoning to defend a flawed question.
+- Use a miss to locate a gap, slip, or misconception. Repair an important gap before
+  building on it. Explain when a nudge fails instead of requiring endless guesses.
+- Describe immediate results narrowly. Help, visible examples, repeated variants,
+  and recently supplied answers limit what a success shows. A fresh application
+  in this session is still not a delayed retention check.
 
-- **Answerable by reasoning from the session.** Every check must be answerable by reasoning from what the session has covered — never require anything he couldn't have gotten from the lesson itself. A check he has no route to is not a check, it's a coin flip.
-- **Never just reciting your words back.** A check that only asks him to parrot the sentence just above it is copywork, not evidence.
-- **Prefer problems that apply the knowledge.** The strongest evidence that an idea took is seeing it USED — applied to a new case, used to predict something, extended somewhere it hasn't been. Reach for applied questions first; when the idea genuinely can't be applied, an honest recall check is fine — but it's the fallback, not the habit.
-- **Catch confusion early, and make it nameable.** Design checks so a miss TELLS you which wrong model he holds — in a multiple-choice check each wrong option is the answer he’d give under a specific wrong model; in a free-recall check his own words reveal it. Diagnose and repair before building anything on top of it.
-- **His answer is signal, not verdict.** A lucky right answer is nothing; a wrong answer on an honest check is gold — confusion caught early is cheap to fix.
+Ask for reasoning selectively when it helps diagnose the answer. Do not require a
+reflection or confidence explanation after every item.

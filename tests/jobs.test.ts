@@ -1433,39 +1433,38 @@ describe("prompt composition", () => {
 		}
 	});
 
-	it("the question principles compose into the teacher prompt; the probe's quick-measurement revision landed", () => {
-		const teacher = composeInstructions("teacher");
-		// the T2a doctrine fragment (user-locked wording 2026-09-15): verbatim presence
+	it("application checks reach the teacher and provisional sampling reaches the prober", () => {
+		const teacher = composeInstructions("teacher").replace(/\s+/g, " ");
 		for (const pin of [
-			"Answerable by reasoning from the session",
-			"Never just reciting your words back",
-			"Prefer problems that apply the knowledge",
-			"Catch confusion early, and make it nameable",
+			"Ask something answerable from the taught material",
+			"Test its use in a changed example",
+			"Match the task to the goal",
+			"Use a miss to locate a gap, slip, or misconception",
 		]) {
 			assert.ok(teacher.includes(pin), `teacher prompt lost the principle: ${pin}`);
 		}
 		// it loads in sorted fragment order: right after 20-teaching, before 30-jobs
 		assert.ok(
-			teacher.indexOf("Question principles") > teacher.indexOf("# Teach — one step at a time"),
+			teacher.indexOf("# Checks that inform teaching") > teacher.indexOf("# Teach at a useful grain"),
 			"principles sit after the teaching loop",
 		);
 		// the prober's doctrine: the "no rush" framing is gone, quick measurement in
-		const prober = composeInstructions("prober");
+		const prober = composeInstructions("prober").replace(/\s+/g, " ");
 		assert.ok(!prober.includes("There is no rush"), "the old no-rush framing is retired");
 		assert.ok(
-			prober.includes("every wasted question is resolution the final map doesn't get"),
-			"the efficiency-is-resolution directive is in",
+			prober.includes("Stop probing when there is enough evidence to start useful teaching"),
+			"probing has a useful stopping condition",
 		);
-		assert.ok(!prober.includes("Question principles"), "the teach-phase fragment never composes into the prober");
+		assert.ok(!prober.includes("# Checks that inform teaching"), "the teach-phase fragment never composes into the prober");
 	});
 
 	it("the predict-check cycle composes into the teacher; the craft chunk reaches BOTH agents (owner 2026-10-03)", () => {
 		const teacher = composeInstructions("teacher");
 		// the cycle doctrine (28-predictions.md) — teacher-only
-		assert.ok(teacher.includes("predict → teach → check"), "the cycle line is in");
-		assert.ok(teacher.includes('The prediction (`type: "predict"`)'), "the prediction role section is in");
-		assert.ok(teacher.includes("Skip the prediction"), "the skip rule is in");
-		assert.ok(teacher.includes('The check (`type: "check"`)'), "the check role section is in");
+		assert.ok(teacher.includes("prediction → attempt → explanation → check"), "the optional sequence is in");
+		assert.ok(teacher.includes('Prediction: `type: "predict"`'), "the prediction role section is in");
+		assert.ok(teacher.includes("Predictions are optional"), "the skip rule is in");
+		assert.ok(teacher.includes('Check: `type: "check"`'), "the check role section is in");
 		// the craft + thinking channels (shared/20-question-tools.md) — BOTH agents
 		const prober = composeInstructions("prober");
 		for (const [name, prompt] of [
@@ -1477,7 +1476,7 @@ describe("prompt composition", () => {
 			assert.ok(prompt.includes("thinkingWhileReading"), `${name} knows the reading channel`);
 		}
 		// the cycle is teach-phase doctrine — it never composes into the prober
-		assert.ok(!prober.includes("predict → teach → check"), "the teaching cycle stays out of the prober");
+		assert.ok(!prober.includes("prediction → attempt → explanation → check"), "the teaching cycle stays out of the prober");
 	});
 
 	it("the sources-v0 prompt lines compose: read/pdf doctrine in the teacher, the read line in the prober", () => {
@@ -1485,7 +1484,7 @@ describe("prompt composition", () => {
 		assert.ok(teacher.includes("Learner source files"), "the teacher carries the source-files section");
 		assert.ok(teacher.includes("brief with page citations"), "the pdf brief's citation duty is stated");
 		const prober = composeInstructions("prober");
-		assert.ok(prober.includes("the `read` tool can inspect it directly"), "the prober knows it can read learner files");
+		assert.ok(prober.includes("Use `read` for referenced local files"), "the prober knows it can read learner files");
 	});
 
 	it("the sources-v1 shared fragment composes into BOTH agents (find/ls/grep doctrine)", () => {

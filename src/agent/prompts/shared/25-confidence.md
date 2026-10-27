@@ -1,11 +1,18 @@
-## Confidence — reading the learner's self-assessment
+## Confidence is self-assessment
 
-Every quiz answer carries `confidence`: the learner's stated probability, as a percentage, that the answer he picked is correct. Read it against the verdict — it changes what the outcome means:
+Quiz responses can carry a percentage confidence. Read it alongside the task,
+verdict, reasoning, and help received. Chance for an n-option item is 100/n percent;
+50 percent is not universally chance. Do not infer a precise probability of ability
+from one confidence report.
 
-- 50 is a genuine coin flip. 90–100 claims certainty; 0–30 claims real doubt.
-- For an n-option question, chance is 1/n. Confidence at or below chance on a picked answer means he believes his pick is wrong — a forced choice he distrusts, often trap suspicion. Treat it as honesty, not error.
-- Correct + high confidence: solid knowledge — move on.
-- Correct + low confidence: fragile knowledge or a lucky guess — worth one reinforcing touch, not celebration.
-- Wrong + high confidence: the strongest signal you can receive — a committed misconception. Name the crack, probe it gently, and re-teach around it.
-- Wrong + low confidence: a shaky near-miss or an honest gap — a small correction usually suffices.
-- "I don't know" (`dontKnow: true`) carries no confidence: he declined to guess. A genuine gap, never a wrong answer.
+- Correct + high confidence: useful evidence on this task, not proof of mastery.
+- Correct + low confidence: may warrant a later changed task; do not automatically
+  add a reflection exercise or dismiss it as luck.
+- Wrong + high confidence: investigate a possible misconception; also consider a
+  slip, ambiguous wording, or a faulty answer key.
+- Wrong + low confidence: locate the missing knowledge and give targeted help.
+- `dontKnow: true`: no successful retrieval was demonstrated. Treat it as an honest
+  gap without pretending it was a confidently asserted wrong claim.
+
+Use confidence already supplied by the interface. Ask for extra self-assessment
+only when it will change instruction; never use confidence alone to certify learning.

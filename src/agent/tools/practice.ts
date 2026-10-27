@@ -174,11 +174,11 @@ export const concludeInputObject = Type.Object({
 		{ description: "REQUIRED — the outcome: solved, solvedWithHints, movedOn, or surrendered — bare words, no quotes (dismissed is synthesized, never yours)." },
 	),
 	verdict: Type.String({
-		description: "REQUIRED — the plain-language verdict: what was credited, where it broke. On a wrong answer: localize the break, do NOT give the correction.",
+		description: "REQUIRED — the plain-language verdict: what the learner demonstrated, what needed help, and any error or flawed task. Explain a correction when useful; do not credit an agent-supplied solution as independent success.",
 	}),
 	rung: Type.Union(
 		[Type.Literal("R0"), Type.Literal("R1"), Type.Literal("R2"), Type.Literal("R3"), Type.Literal("R4"), Type.Literal("R5"), Type.Null()],
-		{ description: "REQUIRED — the hint-ladder rung the problem needed: R0 through R5, or null = no hint was given (bare, no quotes)." },
+		{ description: "REQUIRED — the most revealing help actually given: R0 through R5, or null = no help. Rungs describe assistance, not mandatory stages; even R0/R1 is help." },
 	),
 	missClass: Type.Union(
 		[
@@ -191,7 +191,7 @@ export const concludeInputObject = Type.Object({
 		],
 		{ description: "REQUIRED — the miss classification: cue, discrimination, execution, careless, or structural — or null = no miss (bare, no quotes)." },
 	),
-	retest: Type.Boolean({ description: "REQUIRED — true marks the problem for a fresh-surface retest before the session ends." }),
+	retest: Type.Boolean({ description: "REQUIRED — true records that a changed follow-up would be useful. It does not schedule delayed review or require the learner to continue before stopping." }),
 });
 
 export type ConcludeInput = Static<typeof concludeInputObject>;

@@ -8,7 +8,6 @@
  */
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
 
@@ -18,7 +17,9 @@ import {
 	PRACTICE_PROBLEM_TOOL,
 	type LhMessage,
 } from "../src/core/native-messages.ts";
-import { CONCLUDE_ACK_TEXT } from "../src/core/contracts/chat.ts";
+import { CONCLUDE_ACK_TEXT, HANDOFF_TEXT } from "../src/core/contracts/chat.ts";
+import { probeDoneInputSchema } from "../src/core/contracts/probe.ts";
+import { probeDoneTool } from "../src/agent/tools/probe.ts";
 import { concludeInputObject, concludeTool, createPracticeGate, problemTool, practiceTools } from "../src/agent/tools/practice.ts";
 import { composeInstructions, createPracticeAgent } from "../src/agent/teacher-agent.ts";
 import { allSegmentPaths } from "../src/agent/prompt-segments.ts";
@@ -238,73 +239,60 @@ describe("the practice agent", () => {
 	});
 });
 
-// ── persistent nudges (shipped defaults, no model calls) ──────────────────────
-
-describe("persistent practice nudges", () => {
-	const doctrine = readFileSync(new URL("../src/agent/prompts/practice/10-doctrine.md", import.meta.url), "utf8");
+// These checks inspect the instructions sent to the model; they do not simulate learning.
+describe("research-informed practice policy", () => {
 	const normalizeWhitespace = (text: string) => text.replace(/\s+/g, " ").trim();
-	const approvedParagraphs = [
-		"- When a nudge does not land, reassess where the learner is stuck and offer only the next necessary piece of information. Do not jump to the full solution. Tentative answers, questions, and thinking aloud remain work in progress.",
-		"**On a wrong answer**, state the verdict plainly and localize the first break without giving the correction. Give the smallest nudge that lets the learner make the next move, then wait. If that nudge does not land, give another minimal nudge based on the new thinking. A failed attempt is never a reason to reveal the correction or conclude the problem. Continue until the learner finds and completes the correct solution.",
-		"Conclude when the learner has solved the problem correctly or explicitly asks to end it. Do not infer permission to end it from mistakes, elapsed time, the number of attempts, frustration, or an apparent inability to proceed.",
-	];
+	const descriptionOf = (schema: unknown) => (schema as { description: string }).description;
 
-	it("preserves the approved paragraphs in source and the effective default prompt", () => {
-		// Pin approved wording and Markdown, but allow incidental line wrapping.
-		for (const text of [doctrine, composeInstructions("practice")]) {
-			const paragraphs = text.split(/\n\s*\n|\n(?=- )/).map(normalizeWhitespace);
-			for (const approved of approvedParagraphs) {
-				assert.ok(paragraphs.includes(approved), `missing approved paragraph: ${approved}`);
-			}
-		}
+	it("keeps the probe tool, assessment schema, and teacher handoff consistent with uncertain evidence", () => {
+		const description = probeDoneTool({} as never).probe_done!.description;
+		assert.match(description, /Report untested ceilings and missing evidence as uncertain/);
+		assert.doesNotMatch(description, /every strand.*bracketed/);
+		const assessment = descriptionOf(probeDoneInputSchema.properties.assessment.properties.strands.items.properties.assessment);
+		assert.match(assessment, /explicit uncertainty if untested/);
+		assert.match(HANDOFF_TEXT, /Immediate success is provisional/);
+		assert.doesNotMatch(HANDOFF_TEXT, /unconditional truths|obviously true/);
 	});
 
-	it("does not compose the retired attempt cutoff, failed-repair reveal, or automatic-abort instructions", () => {
-		for (const text of [doctrine, composeInstructions("practice")]) {
-			const normalized = normalizeWhitespace(text);
-			assert.doesNotMatch(normalized, /\b(?:one|single|1) bounded attempt\b/i);
-			assert.doesNotMatch(normalized, /If the repair attempt fails, reveal and move on/i);
-			assert.doesNotMatch(normalized, /A correction found by the learner after a confident error consolidates more/i);
-			assert.doesNotMatch(normalized, /when the trace shows genuine inability, drop straight to R5 and reveal/i);
-			assert.doesNotMatch(normalized, /when the learner surrenders or cannot proceed/i);
-			assert.doesNotMatch(normalized, /when the marginal yield of staying is exhausted/i);
-			assert.doesNotMatch(normalized, /do not withhold them past the point of exhaustion/i);
-		}
-	});
-
-	it("preserves the approved concluded-problem switch and unbounded structural repair in source and the effective default prompt", () => {
-		const approvedDifficulty = "3. **Difficulty** — from the last outcomes on this target: clean success, one notch up; success that needed hints, hold; a miss, one notch down and consider dropping a mode. Two missed concluded problems in a row on this target: switch targets for the next demand. Never switch away from an active problem because of the number of attempts.";
-		const approvedClassification = "Classify every miss: cue miss (nothing came), discrimination error (wrong candidate won), execution slip (right proposition, wrong run), careless, or structural (the retrieved proposition is itself wrong — a misconception). The first four are practice information. Structural misses call for minimal nudges toward repairing the misconception, not an immediate correction or re-teaching. Keep each nudge surgical; do not impose a one-line or one-attempt limit on the repair as a whole.";
-		for (const text of [doctrine, composeInstructions("practice")]) {
-			const normalized = normalizeWhitespace(text);
-			assert.ok(normalized.includes(approvedDifficulty), "preserve the difficulty readout and exact approved switching rule");
-			assert.ok(normalized.includes(approvedClassification), "preserve the miss taxonomy and exact approved structural-repair rule");
-			assert.doesNotMatch(normalized, /two misses in a row, switch targets/i);
-			assert.doesNotMatch(normalized, /Structural gets one surgical line/i);
-			assert.doesNotMatch(normalized, /the correction, stated once/i);
-			assert.doesNotMatch(normalized, /if a repair needs more than a line/i);
-		}
-	});
-
-	it("preserves the approved misconception introduction without an affirmative one-line repair cap", () => {
-		const approvedIntroduction = "- **Not a teaching session.** You will find misconceptions. Address them with minimal, surgical nudges, over as many exchanges as needed. A practice session that drifts into re-teaching has stopped practicing.";
-		for (const text of [doctrine, composeInstructions("practice")]) {
-			const normalized = normalizeWhitespace(text);
-			assert.ok(normalized.includes(approvedIntroduction), "preserve the exact approved introduction and the rest of the not-teaching bullet");
-			assert.doesNotMatch(normalized, /Repair them in a line, surgically, and return to practice\./i);
-		}
-	});
-
-	it("keeps the many-claims default, hint ladder, dismissal, and explicit-go-ahead pause", () => {
+	it("honors explanation requests and replaces repeated unsuccessful nudges with instruction", () => {
 		const prompt = normalizeWhitespace(composeInstructions("practice"));
-		assert.match(prompt, /A problem may take many claims; staying is the default/);
-		for (const rung of ["R0", "R1", "R2", "R3", "R4", "R5"]) {
-			assert.ok(prompt.includes(`**${rung} —`));
-		}
-		assert.match(prompt, /Concluding ends your turn; the next problem is posed only when the learner explicitly moves on/);
-		assert.match(prompt, /After the conclude's result.*END YOUR TURN: no further tool calls in that reply, never another problem/);
-		assert.match(prompt, /A clarification question is never the go-ahead; when in doubt, answer and wait/);
-		assert.match(prompt, /The learner may discard a problem without concluding it/);
+		assert.match(prompt, /After that nudge fails, provide a clear explanation or worked step/);
+		assert.match(prompt, /Honor an explicit request for an explanation immediately/);
+		assert.doesNotMatch(prompt, /A failed attempt is never a reason to reveal/);
+		assert.doesNotMatch(prompt, /Never teach beyond a surgical line/);
+		assert.doesNotMatch(prompt, /one rung per request\. A trace/);
+	});
+
+	it("distinguishes assisted completion, supplied answers, repair, and delayed retention", () => {
+		const prompt = normalizeWhitespace(composeInstructions("practice"));
+		assert.match(prompt, /Even R0 or R1 is help/);
+		assert.match(prompt, /solvedWithHints/);
+		assert.match(prompt, /An explanation supplied by you does not become a learner-produced solution/);
+		assert.match(prompt, /A same-session retest checks repair/);
+		assert.match(prompt, /it does not schedule a future session/);
+		assert.match(prompt, /Immediate|immediately after instruction/);
+	});
+
+	it("preserves explicit progression and stopping without forcing every retest", () => {
+		const prompt = normalizeWhitespace(composeInstructions("practice"));
+		assert.match(prompt, /Concluding reveals the committed solution and ends the turn/);
+		assert.match(prompt, /The next problem requires the learner's explicit go-ahead/);
+		assert.match(prompt, /Respect a request to stop even when retests remain/);
+		assert.match(prompt, /The learner may discard a problem/);
+		for (const rung of ["R0", "R1", "R2", "R3", "R4", "R5"]) assert.ok(prompt.includes(rung));
+		assert.doesNotMatch(prompt, /Nothing that failed in the session ends the session unretested/);
+	});
+
+	it("keeps solution commitment while adapting difficulty and variation", () => {
+		const prompt = normalizeWhitespace(composeInstructions("practice"));
+		assert.match(prompt, /Commit a complete model solution before the learner sees the statement/);
+		assert.match(prompt, /A second model's agreement alone is not proof/);
+		assert.match(prompt, /Short blocks of same-target work can help a novice/);
+		assert.match(prompt, /85% success rate is an adjustable heuristic/);
+		assert.doesNotMatch(prompt, /Never issue blocks of same-target problems/);
+		assert.match(descriptionOf(concludeInputObject.properties.verdict), /do not credit an agent-supplied solution/);
+		assert.match(descriptionOf(concludeInputObject.properties.rung), /most revealing help actually given/);
+		assert.match(descriptionOf(concludeInputObject.properties.retest), /does not schedule delayed review/);
 	});
 
 	it("aligns the conclude description with the canonical ack without changing outcomes or the runtime pause mechanism", async () => {
@@ -327,59 +315,36 @@ describe("persistent practice nudges", () => {
 // ── the prompt composition ──────────────────────────────────────────────────
 
 describe("practice prompt composition (own directory + the formatting appendix)", () => {
-	it("composes base + doctrine — never the teaching base or question/confidence mechanics", () => {
+	it("composes practice policy and shared evidence without teaching-only tools", () => {
 		const prompt = composeInstructions("practice");
-		// The base's voice section and the doctrine's spine are present…
-		assert.match(prompt, /Everything in this section deletes a default/);
-		assert.match(prompt, /You run practice sessions\./);
-		assert.match(prompt, /## Standing prohibitions/);
-		// …and nothing from the teaching system prompt or shared fragments.
-		assert.doesNotMatch(prompt, /install understanding/);
-		// The shared 20-question-tools doctrine (predict/check) must not
-		// compose — practice has its own demand theory.
-		assert.doesNotMatch(prompt, /predict/i);
+		assert.match(prompt, /# The practice session/);
+		assert.match(prompt, /## Reasoning and evidence/);
+		assert.doesNotMatch(prompt, /# The teaching method/);
+		assert.doesNotMatch(prompt, /## Confidence is self-assessment/);
+		assert.doesNotMatch(prompt, /plan_init|ask_user_question/);
 	});
 
-	it("the SHARED voice + accuracy compose (owner round 13): ONE law across every agent, and the stale line is dead", () => {
-		const prompt = composeInstructions("practice");
-		// accuracy (prompt-refinement round, 2026-10-07): the felt-doubt bar —
-		// one law across every agent; the old round-10 pointer lived in the
-		// accuracy chunk, the mechanics now live in each agent's own sections
-		assert.match(prompt, /one confidently-delivered hallucination poisons that/);
-		assert.match(prompt, /The bar is the doubt itself/);
-		// practice's own fact-check law (the rarely-needed framing is dead)
-		assert.match(prompt, /grades the learner against a lie/);
-		assert.ok(!prompt.includes("exceptions, not habits"), "the rarely-needed framing is gone");
-		assert.ok(!prompt.includes("no research tool here"), "the stale line is gone");
-		// the thinking-fields doctrine composes into practice too (one law)
-		assert.match(prompt, /primary data/);
-		// the teacher composes the same shared chunks (one law)
-		const teacher = composeInstructions("teacher");
-		assert.match(teacher, /one confidently-delivered hallucination poisons that/);
-		assert.match(teacher, /Everything in this section deletes a default/);
-		assert.match(teacher, /The bar is the doubt itself/);
-		assert.match(teacher, /primary data/);
-		// the no-double-plan rule (owner-reported: plan drawn twice)
-		assert.match(teacher, /Never draw the plan again in your prose/);
-		// plan rewriting is normal, not exceptional (continuous adaptation)
-		assert.match(teacher, /Rewriting is a normal, common event/);
-		// planning is the natural verification moment
-		assert.match(teacher, /planning is the natural moment for verification/);
-		// no size ceilings, and the detour keeps the pace (owner round, 2026-10-07)
-		assert.ok(!teacher.includes("Typically 5–15 nodes"), "the node-count cap is dead");
-		assert.match(teacher, /No size ceiling/);
-		assert.match(teacher, /never rush the repair/);
-		assert.match(teacher, /one and only pace/);
-		assert.match(teacher, /nothing to rush/, "the goal reiteration composes");
+	it("shares accuracy, voice, and fallible evidence rules across agents", () => {
+		for (const kind of ["practice", "teacher", "prober"] as const) {
+			const prompt = composeInstructions(kind);
+			assert.match(prompt, /one confidently-delivered hallucination poisons that/);
+			assert.match(prompt, /Everything in this section deletes a default/);
+			assert.match(prompt, /fallible self-report/);
+			assert.match(prompt, /graph records ideas and their sources, not verified ability/);
+			assert.doesNotMatch(prompt, /Memorized facts rot|Understood facts don't|solid knowledge — move on/);
+		}
 	});
 
-	it("the prober doctrine steers difficulty by evidence (owner round, 2026-10-07)", () => {
-		const prober = composeInstructions("prober");
-		assert.match(prober, /Enter near the top, not the bottom/);
-		assert.match(prober, /Strands inform each other/);
-		assert.match(prober, /never descending into already-bracketed territory/);
-		// the confidence + thinking signals are wired into question selection
-		assert.match(prober, /the verdict, his confidence, and his thinking field together set where the next question should sit/);
+	it("uses a provisional probe and preserves the plan presentation contract", () => {
+		const prober = composeInstructions("prober").replace(/\s+/g, " ");
+		assert.match(prober, /Stop probing when there is enough evidence to start useful teaching/);
+		assert.match(prober, /Label an untested ceiling as untested/);
+		assert.doesNotMatch(prober, /A strand that never breaks is not done/);
+		const teacher = composeInstructions("teacher").replace(/\s+/g, " ");
+		assert.match(teacher, /The tool presents the map; do not duplicate it in prose/);
+		assert.match(teacher, /Ask for confirmation and end the turn/);
+		assert.match(teacher, /Not every turn needs a question/);
+		assert.match(teacher, /Immediate success is provisional/);
 	});
 
 	it("the SHARED formatting guide composes (owner, 2026-10-04 late): LaTeX delimiters in every setting", () => {
