@@ -1,5 +1,7 @@
 "use client";
 
+import type { ChatImage } from "@/src/core";
+
 /**
  * THE SESSION HOOK (Wave D, owner-approved 2026-09-26): the React adapter
  * over the pure SessionModel (components/session-core.ts — the state
@@ -104,7 +106,7 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 
 	const send = useCallback((input: ChatInput) => void model.send(input), [model]);
 	const continueIfOwed = useCallback((record: readonly LhMessage[]) => void model.continueIfOwed(record), [model]);
-	const steer = useCallback((text: string) => void model.steer(text), [model]);
+	const steer = useCallback((text: string, images?: ChatImage[]) => void model.steer(text, images), [model]);
 	const submitAnswer = useCallback(
 		(tool: string, toolCallId: string, output: QuestionAnswerData) =>
 			void model.submitAnswer(tool, toolCallId, output),

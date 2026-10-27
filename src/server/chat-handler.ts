@@ -242,6 +242,10 @@ export async function handleChatInput(
 	let conversationEngine: PiEngine;
 	try { conversationEngine = piEngineForSpec(conversation, () => callPurpose.background, lifecycle); }
 	catch { return Response.json({ error: conversation.provider === "chatgpt" ? chatGPTStreamError("model catalog") : isSubscriptionProvider(conversation.provider) ? nativeSubscriptionError(conversation.provider, "model catalog") : "The selected model is unavailable." }, { status: 503 }); }
+	const incomingImages = input.type === "text" ? Boolean(input.images?.length) : input.type === "steers" && input.steers.some((m) => m.role === "user" && Array.isArray(m.content) && m.content.some((part) => part.type === "image"));
+	if (incomingImages && !conversationEngine.model.input.includes("image")) {
+		return Response.json({ error: "This model cannot read images. Select an image-capable model and send again.", code: "images_not_supported" }, { status: 400 });
+	}
 	const modelIdForCompaction = `${conversationEngine.model.provider}:${conversationEngine.model.id}`;
 	await ensureCompacted(
 		{

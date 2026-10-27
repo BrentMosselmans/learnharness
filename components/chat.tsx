@@ -39,6 +39,7 @@ import {
 	textPartMessageId,
 	kbdEventForAction as kbdEventForChat,
 	type ChatInput,
+	type ChatImage,
 	type ChatSettings,
 	type LhMessage,
 	type ModelSlotName,
@@ -579,6 +580,8 @@ export function Chat({
 	 *  Auto-continuations (probe answers) never set it — their refusal
 	 *  opens the dialog with no replay. */
 	const draftRef = useRef<string | null>(null);
+	const [images, setImages] = useState<ChatImage[]>([]);
+	const draftImagesRef = useRef<ChatImage[]>([]);
 
 	// THE BYOK REFUSAL (owner, 2026-09-22): a send that lands the server's
 	// 503 models_not_configured envelope renders as the SETUP FLOW, never
@@ -591,6 +594,11 @@ export function Chat({
 	// re-sends it (owner ruling 2026-10-09).
 	useEffect(() => {
 		if (!error) return;
+		if (error.message.includes("images_not_supported") && draftImagesRef.current.length) {
+			setImages(draftImagesRef.current);
+			if (draftRef.current !== null) applyText(draftRef.current);
+			draftImagesRef.current = [];
+		}
 		const missing = parseModelsRefusal(error.message);
 		// The key-refusal twin (zero-keys wave): a pinned model whose
 		// provider key is gone gets the SAME treatment — revert-draft and
@@ -611,6 +619,8 @@ export function Chat({
 			if (cancelled) return;
 			if (draftRef.current !== null) {
 				applyText(draftRef.current);
+				setImages(draftImagesRef.current);
+				draftImagesRef.current = [];
 				draftRef.current = null;
 			}
 			clearError();
@@ -682,7 +692,7 @@ export function Chat({
 	// affordance).
 	const [compacting, setCompacting] = useState(initiallyCompacting);
 	const canSend =
-		(text.trim().length > 0 || dictation.active) && !pending && !activeProblem && !compacting;
+		(text.trim().length > 0 || images.length > 0 || dictation.active) && !pending && !activeProblem && !compacting;
 
 	/* THE PRACTICE PAUSE (owner round 16): between problems — practice
 	 * kind, nothing active, nothing in flight, and at least one problem
@@ -1144,10 +1154,12 @@ export function Chat({
 	const doSend = () => {
 		if (busy || pending || compacting) return;
 		const t = textRef.current.trim();
-		if (!t) return;
+		if (!t && !images.length) return;
+		draftImagesRef.current = images;
 		draftRef.current = t; // the refusal flow's preserve-and-replay seam
 		applyText("");
-		void send({ type: "text", text: t });
+		void send({ type: "text", text: t, ...(images.length ? { images } : {}) });
+		setImages([]);
 	};
 
 	/* STEER VS SEND (owner arc 2026-10-03): a send while a turn runs steers
@@ -1162,10 +1174,13 @@ export function Chat({
 	const doSteerOrSend = () => {
 		if (pending || compacting) return;
 		const t = textRef.current.trim();
-		if (!t) return;
+		if (!t && !images.length) return;
 		if (busy) {
+			draftRef.current = t;
+			draftImagesRef.current = images;
 			applyText("");
-			void steer(t);
+			void steer(t, images);
+			setImages([]);
 			return;
 		}
 		doSend();
@@ -1437,6 +1452,8 @@ export function Chat({
 												<div className="font-medium uppercase tracking-wide text-muted-foreground">You</div>
 												<div className="lh-prose whitespace-pre-wrap text-foreground">
 													{m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n")}
+													{/* eslint-disable-next-line @next/next/no-img-element -- Clipboard data URLs are rendered directly, without an image optimizer. */}
+													{m.parts.filter((p) => p.type === "image").map((p, i) => <img key={i} src={`data:${p.mimeType};base64,${p.data}`} alt={`Your attached image ${i + 1}`} className="my-2 max-h-96 max-w-full rounded object-contain" />)}
 												</div>
 											</div>
 									) : (
@@ -1643,6 +1660,8 @@ export function Chat({
 							// only detach our view.
 							busy={busy}
 							value={text}
+							images={images}
+							onImagesChange={setImages}
 							onChange={applyText}
 							inputRef={composerInputRef}
 							onSend={onSend}

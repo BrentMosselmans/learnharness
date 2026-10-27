@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { CHAT_IMAGE_TYPES, MAX_CHAT_IMAGES, MAX_CHAT_IMAGE_BYTES, parseChatImages, type ChatImage } from "@/src/core";
 import { ArrowRightIcon, CornerDownLeftIcon, SquareIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Hint } from "@/components/ui/hint";
@@ -49,6 +51,8 @@ export function Composer({
 	placeholder = "Ask, answer, or steer the lesson…",
 	nextProblem = false,
 	onNext,
+	images = [],
+	onImagesChange,
 }: {
 	busy: boolean;
 	value: string;
@@ -74,14 +78,30 @@ export function Composer({
 	/** The signal's dispatcher (send({type:"next"})) — the chip and the
 	 *  empty-Enter share it. */
 	onNext?: () => void;
+	images?: ChatImage[];
+	onImagesChange?: React.Dispatch<React.SetStateAction<ChatImage[]>>;
 }) {
+	const [imageError, setImageError] = useState<string | null>(null);
+	const [readingImages, setReadingImages] = useState(false);
+	const readingRef = useRef(false);
 	const act = () => {
+		if (readingRef.current) return;
 		const action = enterAction({ busy, canSend, nextProblem });
 		if (action === "stop") onStop();
 		else if (action === "send") onSend();
 		else if (action === "next") onNext?.();
 	};
 	return (
+		<div className="min-w-0 flex-1">
+			{images.length > 0 && <div className="flex flex-wrap gap-2 px-3 pt-2" aria-label="Attached images">
+				{images.map((image, index) => <div key={index} className="flex items-start gap-1 rounded border border-border p-1">
+					{/* eslint-disable-next-line @next/next/no-img-element -- Clipboard data URLs are rendered directly, without an image optimizer. */}
+					<img src={`data:${image.mimeType};base64,${image.data}`} alt={`Attached image ${index + 1}`} className="h-20 max-w-32 object-contain" />
+					<button type="button" className="rounded px-2 text-muted-foreground hover:text-foreground focus-visible:outline" aria-label={`Remove image ${index + 1}`} onClick={() => onImagesChange?.((current) => current.filter((_, i) => i !== index))}>×</button>
+				</div>)}
+			</div>}
+			{readingImages && <p role="status" className="px-3 text-xs text-muted-foreground">Reading image…</p>}
+			{imageError && <p role="alert" className="px-3 text-xs text-destructive">{imageError}</p>}
 		<form
 			data-testid="composer"
 			className="flex items-end gap-1.5 p-1.5"
@@ -94,6 +114,23 @@ export function Composer({
 				ref={inputRef}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
+				onPaste={(e) => {
+					if (!onImagesChange) return;
+					const files = Array.from(e.clipboardData.items).filter((item) => item.kind === "file" && item.type.startsWith("image/")).map((item) => item.getAsFile()).filter((file): file is File => file !== null);
+					if (!files.length) return;
+					e.preventDefault();
+					if (readingRef.current) return;
+					setImageError(null);
+					if (images.length + files.length > MAX_CHAT_IMAGES) { setImageError("Attach at most 3 images per message."); return; }
+					readingRef.current = true;
+					setReadingImages(true);
+					void Promise.all(files.map(readPastedImage)).then((added) => {
+						onImagesChange((current) => [...current, ...added]);
+					}).catch((error) => setImageError((error as Error).message)).finally(() => {
+						readingRef.current = false;
+						setReadingImages(false);
+					});
+				}}
 				onKeyDown={(e) => {
 					// Esc ends dictation before anything else Esc might someday mean
 					// here (the dictate decisions: click-again or Esc to stop).
@@ -146,7 +183,7 @@ export function Composer({
 					<button
 						type="submit"
 						aria-label={busy && !canSend ? "Stop" : "Send"}
-						disabled={!busy && !canSend}
+						disabled={readingImages || (!busy && !canSend)}
 						className={cn(
 							"flex size-10 shrink-0 items-center justify-center rounded-[10px] transition-colors",
 							busy && !canSend
@@ -158,5 +195,18 @@ export function Composer({
 					</button>
 				)}
 		</form>
+		</div>
 	);
+}
+
+export async function readPastedImage(file: File): Promise<ChatImage> {
+	if (!(CHAT_IMAGE_TYPES as readonly string[]).includes(file.type)) throw new Error("Paste a PNG, JPEG, WebP, or GIF image.");
+	if (file.size > MAX_CHAT_IMAGE_BYTES) throw new Error("Each image must be no larger than 2 MB.");
+	const dataUrl = await new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve(String(reader.result));
+		reader.onerror = () => reject(new Error("Could not read the pasted image. Please paste it again."));
+		reader.readAsDataURL(file);
+	});
+	return parseChatImages([{ type: "image", mimeType: file.type, data: dataUrl.slice(dataUrl.indexOf(",") + 1) }])[0]!;
 }

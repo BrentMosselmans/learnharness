@@ -87,6 +87,12 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	const context = createContext({
 		require: (id: string) => {
 			if (id === "electron") return electron;
+			if (id === "node:http") return {
+				get: (_url: string, callback: (response: { statusCode: number; resume(): void }) => void) => {
+					queueMicrotask(() => callback({ statusCode: 200, resume() {} }));
+					return new EventEmitter();
+				},
+			};
 			if (id === "electron-updater") {
 				if (updaterMissing) throw new Error("missing updater");
 				return { autoUpdater: updater };

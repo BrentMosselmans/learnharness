@@ -11,6 +11,9 @@ const { makeIgnoreFn } = require("next/dist/build/collect-build-traces");
 const patterns = nextConfig.outputFileTracingExcludes!["*"];
 
 describe("standalone JavaScript tracing exclusions and native workaround policy", () => {
+	it("keeps the development Electron launcher out of Turbopack's path rewriting", () => {
+		assert.ok(nextConfig.serverExternalPackages?.includes("electron"));
+	});
 	for (const windows of [false, true]) {
 		const root = windows ? "C:\\build\\learnharness" : "/build/learnharness";
 		const file = (relative: string) => root + (windows ? "\\" : "/") + (windows ? relative.replaceAll("/", "\\") : relative);

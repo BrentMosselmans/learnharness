@@ -10,12 +10,13 @@
 // back to a plain text send (the settle race). Stranding safety: the
 // registry copy survives a question termination or abort and rides the
 // chat's next run.
-import { ChatInputError, newUserSteer, parseUserSteerInput } from "@/src/core";
-import { getChat, steerLiveChat } from "@/src/server";
+import { ChatInputError, newUserSteer, parseUserSteerInput, resolveConversationSpec } from "@/src/core";
+import { effectiveSettings, getChat, modelCatalog, steerLiveChat } from "@/src/server";
 
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
 	const { id } = await ctx.params;
-	if (!getChat(id)) return Response.json({ error: "unknown chat" }, { status: 404 });
+	const chat = getChat(id);
+	if (!chat) return Response.json({ error: "unknown chat" }, { status: 404 });
 	let input;
 	try {
 		const body = (await request.json()) as { input?: unknown };
@@ -24,7 +25,12 @@ export async function POST(request: Request, ctx: { params: Promise<{ id: string
 		if (err instanceof ChatInputError) return Response.json({ error: err.message }, { status: 400 });
 		throw err;
 	}
-	const message = newUserSteer(input.text, input.id);
+	if (input.images?.length) {
+		const spec = resolveConversationSpec(chat.settings, effectiveSettings().models.strong);
+		const model = modelCatalog().models.find((m) => m.provider === spec?.provider && m.id === spec.id);
+		if (!model?.input.includes("image")) return Response.json({ error: "This model cannot read images. Select an image-capable model and send again.", code: "images_not_supported" }, { status: 400 });
+	}
+	const message = newUserSteer(input.text, input.id, input.images);
 	if (!steerLiveChat(id, message)) {
 		return Response.json({ error: "no live turn to steer" }, { status: 409 });
 	}

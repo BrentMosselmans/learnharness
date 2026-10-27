@@ -1,3 +1,4 @@
+import type { ChatImage } from "@/src/core";
 /**
  * THE SESSION MODEL (Wave D): the chat session's state machine, extracted
  * PURE — no React, one injectable fetch — so the attach/replay/settle/
@@ -677,7 +678,7 @@ export class SessionModel {
 		// write-ahead will persist (inputAppends), with LOCAL ids so
 		// adoption can tell them from the record's absorbed copies.
 		const optimistic: LhMessage[] = [];
-		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text), id: localId() });
+		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text, input.images), id: localId() });
 		else if (input.type === "thinking") {
 			// The practice submissions (2026-10-04): the marker lands
 			// optimistically — the card renders from its details the
@@ -761,11 +762,11 @@ export class SessionModel {
 	 *  settled mid-send (the race): fall back to the plain text send —
 	 *  the entry is dropped and send() pushes its own optimistic card.
 	 */
-	async steer(text: string): Promise<void> {
+	async steer(text: string, images: ChatImage[] = []): Promise<void> {
 		const t = text.trim();
-		if (!t) return;
+		if (!t && !images.length) return;
 		const id = `steer_${localId()}`;
-		this.steerQueueValue = [...this.steerQueueValue, { id, text: t }];
+		this.steerQueueValue = [...this.steerQueueValue, { id, text: t || "Image attached" }];
 		this.onChange?.();
 		const dropSteer = () => {
 			this.steerQueueValue = this.steerQueueValue.filter((s) => s.id !== id);
@@ -775,12 +776,12 @@ export class SessionModel {
 			const res = await this.fetch(`/api/chats/${this.chatId}/steer`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ input: { type: "steer", id, text: t } }),
+				body: JSON.stringify({ input: { type: "steer", id, text: t, ...(images.length ? { images } : {}) } }),
 			});
 			if (res.ok) return; // parked or delivered — the stream lands the card
 			if (res.status === 409) {
 				dropSteer();
-				await this.send({ type: "text", text: t }); // the settle race: plain send
+				await this.send({ type: "text", text: t, ...(images.length ? { images } : {}) }); // the settle race: plain send
 				return;
 			}
 			dropSteer();

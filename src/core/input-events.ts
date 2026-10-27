@@ -1,3 +1,4 @@
+import { parseChatImages, type ChatImage } from "./image-attachments.ts";
 /**
  * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26: "input
  * events now, in the same pass"): POST /api/chat carries `{chatId, input}`
@@ -42,7 +43,7 @@ import { QUESTION_TOOLS, toolQuestionKind } from "./pending.ts";
 
 /** One client-originated input event (the POST body's `input`). */
 export type ChatInput =
-	| { type: "text"; text: string }
+	| { type: "text"; text: string; images?: ChatImage[] }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData }
 	| { type: "continue" }
 	/** The practice dock's two buttons (owner, 2026-10-04): the learner's
@@ -110,7 +111,7 @@ export function parseDismissInput(input: unknown): DismissInput {
  *  (a send with no live turn is a plain text send, which already exists).
  *  The id is client-minted (steer_<localid>): the queued indicator keys on
  *  it, and the drain's message events upsert the real card by the same id. */
-export type UserSteerInput = { type: "steer"; id: string; text: string };
+export type UserSteerInput = { type: "steer"; id: string; text: string; images?: ChatImage[] };
 
 /** Parse and validate a steer event off a request body. */
 export function parseUserSteerInput(input: unknown): UserSteerInput {
@@ -120,10 +121,11 @@ export function parseUserSteerInput(input: unknown): UserSteerInput {
 	if (typeof i.id !== "string" || i.id.length === 0) {
 		throw new ChatInputError("steer input requires a client-minted id");
 	}
-	if (typeof i.text !== "string" || i.text.trim().length === 0) {
+	const images = inputImages(i.images);
+	if (typeof i.text !== "string" || (!i.text.trim() && !images.length)) {
 		throw new ChatInputError("steer input requires non-empty text");
 	}
-	return { type: "steer", id: i.id, text: i.text };
+	return { type: "steer", id: i.id, text: i.text, ...(images.length ? { images } : {}) };
 }
 
 /** The native appends a dismissal makes (pure — same orphan discipline
@@ -155,11 +157,13 @@ export function parseChatInput(input: unknown): ChatInput {
 	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
 	const i = input as Record<string, unknown>;
 	switch (i.type) {
-		case "text":
-			if (typeof i.text !== "string" || (i.text as string).trim().length === 0) {
+		case "text": {
+			const images = inputImages(i.images);
+			if (typeof i.text !== "string" || (!i.text.trim() && !images.length)) {
 				throw new ChatInputError("text input requires non-empty text");
 			}
-			return { type: "text", text: i.text };
+			return { type: "text", text: i.text, ...(images.length ? { images } : {}) };
+		}
 		case "answer":
 			if (typeof i.toolCallId !== "string" || i.toolCallId.length === 0) {
 				throw new ChatInputError("answer input requires toolCallId");
@@ -174,7 +178,8 @@ export function parseChatInput(input: unknown): ChatInput {
 			if (typeof i.problemCallId !== "string" || i.problemCallId.length === 0) {
 				throw new ChatInputError("thinking input requires problemCallId");
 			}
-			if (typeof i.text !== "string" || i.text.trim().length === 0) {
+			const images = inputImages(i.images);
+	if (typeof i.text !== "string" || (!i.text.trim() && !images.length)) {
 				throw new ChatInputError("thinking input requires non-empty text");
 			}
 			return { type: "thinking", problemCallId: i.problemCallId, text: i.text };
@@ -200,7 +205,7 @@ export function inputAppends(
 ): LhMessage[] {
 	switch (input.type) {
 		case "text":
-			return [...dismissalConclusion(record), newUserMessage(input.text)];
+			return [...dismissalConclusion(record), newUserMessage(input.text, input.images)];
 		case "answer": {
 			const pending = danglingQuestionOf(record.messages);
 			if (!pending || pending.toolCallId !== input.toolCallId) {
@@ -246,4 +251,8 @@ function dismissalConclusion(record: { messages: LhMessage[] }): LhMessage[] {
 /** Is this tool name a question tool (dock-owned, answer-gated)? */
 export function isQuestionTool(name: string): boolean {
 	return (QUESTION_TOOLS as readonly string[]).includes(name);
+}
+
+function inputImages(value: unknown): ChatImage[] {
+	try { return parseChatImages(value); } catch (error) { throw new ChatInputError((error as Error).message); }
 }

@@ -1,3 +1,4 @@
+import type { ChatImage } from "./image-attachments.ts";
 /**
  * THE NATIVE MESSAGE RECORD (Wave B, owner-approved 2026-09-26): chat
  * records store pi's own message shapes — the exact history the agent
@@ -158,11 +159,11 @@ export function newMessageId(): string {
 //     core/input-events.ts; steers in core/contracts/jobs.ts) ─────────────────
 
 /** A learner-authored user message (text input, verdict note). */
-export function newUserMessage(text: string): LhMessage & UserMessage {
+export function newUserMessage(text: string, images: ChatImage[] = []): LhMessage & UserMessage {
 	return {
 		id: newMessageId(),
 		role: "user",
-		content: text,
+		content: images.length ? [...(text ? [{ type: "text" as const, text }] : []), ...images] : text,
 		timestamp: Date.now(),
 	};
 }
@@ -172,8 +173,8 @@ export function newUserMessage(text: string): LhMessage & UserMessage {
  *  rides agent.steer(), the live stream's message events, and the settled
  *  record, so the optimistic queued indicator and the transcript card
  *  upsert by one identity. */
-export function newUserSteer(text: string, id: string): LhMessage & UserMessage {
-	return { id, role: "user", content: text, timestamp: Date.now() };
+export function newUserSteer(text: string, id: string, images: ChatImage[] = []): LhMessage & UserMessage {
+	return { ...newUserMessage(text, images), id };
 }
 
 /** The learner's answer — the question call's tool result (fork 1).

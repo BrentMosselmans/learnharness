@@ -179,12 +179,12 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		}
 
 		if (role === "user") {
-			const content = m.content as string | Array<{ type: string; text?: string }>;
+			const content = m.content as string | Array<{ type: string; text?: string; data?: string; mimeType?: string }>;
 			const texts =
 				typeof content === "string"
 					? [content]
 					: content.filter((c) => c.type === "text").map((c) => (c as { text: string }).text);
-			out.push({ id: m.id, role: "user", parts: texts.map(textPart) });
+			out.push({ id: m.id, role: "user", parts: [...texts.map(textPart), ...(Array.isArray(content) ? content.filter((c) => c.type === "image").map((c) => ({ type: "image", data: c.data, mimeType: c.mimeType })) : [])] });
 			continue;
 		}
 

@@ -107,6 +107,7 @@ const nextConfig: NextConfig = {
 	// The pi engine must stay external: its providers are runtime-loaded Node
 	// code (undici streams, catalog data) that breaks when bundled into routes.
 	serverExternalPackages: [
+		"electron", // its launcher resolves the installed binary relative to __dirname
 		"@earendil-works/pi-ai",
 		"@earendil-works/pi-agent-core",
 		"pdfjs-dist", // sources v0: bundling breaks its node fake-worker path
