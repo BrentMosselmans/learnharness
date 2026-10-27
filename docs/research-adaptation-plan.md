@@ -65,12 +65,18 @@ transfer checks, with a graph detail view explaining the evidence and next revie
 Do not label reading, importing notes, or generating graph nodes as mastery. Do not
 apply flashcard scheduling indiscriminately to procedural or conceptual competence.
 
-## Migration
+## Fresh start (Brent's decision, 27 October 2026)
+
+Start fresh in LearnHarness; do not migrate the old app's learning records or
+progress. The old study records and the fork's existing local session/graph records
+were cleared. API configuration, preferences, research, source content, and lesson
+media were retained. Stage two therefore needs no historical-progress importer or
+cross-app evidence mapping.
 
 Start with Learning and Security as familiar trial subjects. Reuse their goals,
-source maps, and research. Do not import held-out questions or answer keys into the
-learner-visible graph. Import progress only after mapping compatible evidence;
-missing evidence remains unknown. Chinese audio and performance assessment need a
+source maps, and research as useful. Do not import held-out questions or answer keys
+into the learner-visible graph. New skills start with unknown performance until
+the new harness records evidence. Chinese audio and performance assessment need a
 separate integration decision. No key files or personal records go into Git.
 
 ## Evidence carried from the existing project
