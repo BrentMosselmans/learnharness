@@ -34,6 +34,10 @@ export { effectivePromptSegments, allSegmentPaths, readPromptOverride } from "..
 // keeps its plain process.env reads (that seam is the point).
 export * from "./keys.ts";
 export * from "./search.ts";
+// Local dictation (local STT wave, 2026-10-27): the opt-in model download
+// + the server-side runs the renderer streams PCM into.
+export { sttModel } from "./stt-model.ts";
+export { sttRuns, sttErrorResponse } from "./stt-runs.ts";
 export { authStore } from "../store/auth.ts";
 export * from "./settings-body.ts";
 export * from "./turn-liveness.ts";

@@ -81,6 +81,11 @@ const nextConfig: NextConfig = {
 			// Wave E stage 2: resvg rasterizes visual-maker SVGs natively; same
 			// per-platform-binary story as the canvas above (one per build).
 			"node_modules/@resvg/resvg-js-*/**/*",
+			// Local dictation (2026-10-27): sherpa-onnx-node requires its
+			// platform package (sherpa-onnx-<os>-<arch>: the .node + the
+			// onnxruntime/sherpa shared libs it loads from $ORIGIN) by a
+			// computed path — same per-platform story, one binary per build.
+			"node_modules/sherpa-onnx-*/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/providers/data/**/*",
 			// Public native OAuth factories load these flows through variable imports.
 			// Electron main uses the same standalone SDK; the offline runtime gate
@@ -107,6 +112,7 @@ const nextConfig: NextConfig = {
 		"pdfjs-dist", // sources v0: bundling breaks its node fake-worker path
 		"@napi-rs/canvas", // native binding — bundling breaks the .node require
 		"@resvg/resvg-js", // native binding — same
+		"sherpa-onnx-node", // native binding (local dictation) — same
 	],
 };
 

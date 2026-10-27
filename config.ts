@@ -29,6 +29,9 @@ export const PATHS = {
 	/** Debug artifacts (env-gated): data/debug/provider-events/<chatId>.jsonl
 	 * raw provider stream recordings (src/agent/provider-events.ts). */
 	debug: path.join(DATA_ROOT, "debug"),
+	/** Downloaded local models (data/models/<model-id>/) — the dictation
+	 * speech model lives here (src/server/stt-model.ts). */
+	models: path.join(DATA_ROOT, "models"),
 } as const;
 
 // ─── Models ────────────────────────────────────────────────────────────────

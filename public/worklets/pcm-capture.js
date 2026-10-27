@@ -13,11 +13,10 @@
  *                             version was a 256ms IO buffer — see
  *                             ~/.pi/agent/extensions/dictate).
  *   { type: "audio", buffer } — Int16Array frames of 2048 samples (128ms),
- *                             zero-copy (transferred). Deepgram recommends
- *                             ~100–200ms chunks; silence is streamed too,
- *                             so the socket never idles (no KeepAlive
- *                             needed — the 10s NET-0001 timeout only bites
- *                             a stream that stops SENDING).
+ *                             zero-copy (transferred). Silence is streamed
+ *                             too — the server's VAD needs the pauses to
+ *                             find phrase ends (components/dictation.tsx
+ *                             batches 4 frames per upload).
  *
  * Ships as a static file under public/ so it rides the standalone bundle.
  * Plain JS by necessity (worklets run outside the module graph).

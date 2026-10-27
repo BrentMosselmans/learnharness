@@ -160,7 +160,7 @@ The note field is not an auxiliary input — it's the channel where the learner 
 
 **Dictation is a requirement, not a luxury** — yapping means talking, not typing. What it requires on the web:
 1. **Capture:** `getUserMedia` + AudioWorklet → 16 kHz linear16 PCM (browser-native; replaces the pi extension's sox/`rec`).
-2. **Transport + transcription:** the pi `dictate` extension's proven recipe ports directly — Deepgram streaming (`nova-3`, `smart_format`, `punctuate`, `endpointing=300`), per-utterance finals. Architecture: a server route mints a **short-lived Deepgram token**, the browser connects to Deepgram's WSS directly (API key never touches the client). On-device whisper (transformers.js/WebGPU) is the private/offline alternative — deferred unless Deepgram disappoints.
+2. **Transport + transcription:** first shipped on the pi `dictate` extension's recipe — Deepgram streaming (`nova-3`, `endpointing=300`) via short-lived server-minted tokens. **Replaced (2026-10-27) by fully local STT:** the renderer streams PCM to the bundled server, where sherpa-onnx (Silero VAD + NVIDIA Parakeet TDT v3, an opt-in ~672 MB download) transcribes each phrase on-device — no key, no cloud, audio never leaves the machine. The `endpointing=300` tuning carries over as the VAD's pause length.
 3. **UX:** mic button in the composer blob; live level meter (AnalyserNode — the pi extension's responsive visuals rebuilt for web); transcript lands in the textarea/field, editable before send; Escape cancels; **a finished dictation is never lost** (carried over from the pi extension's hard-won UX lessons).
 
 ### It is not a chat — the presentation principle (direction, 2026-08-22 — LOW PRIORITY)

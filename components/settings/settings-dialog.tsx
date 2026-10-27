@@ -68,8 +68,9 @@ type SectionId = (typeof SECTIONS)[number]["id"];
 
 /** `open(section?, row?)` — the optional ROW deep-links into the Keys
  *  section with that row unfolded (zero-keys wave: the dictation error's
- *  click lands on the Deepgram row). `row` is the KEY ID (the env-var
- *  name, e.g. DEEPGRAM_API_KEY — KeysSection's openRow state), not the
+ *  click lands on the Dictation model row, STT_MODEL_ROW). `row` is the KEY
+ *  ID (the env-var name, e.g. TAVILY_API_KEY — KeysSection's openRow
+ *  state) or STT_MODEL_ROW, not the
  *  row's testid. */
 const DialogContext = createContext<{ open: (section?: string, row?: string) => void }>({ open: () => {} });
 

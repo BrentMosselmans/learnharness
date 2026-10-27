@@ -73,6 +73,9 @@ export * from "./session-navigation.ts";
 // shape rules + masking — pure, browser-safe (the auth page binds to the
 // /api/keys routes built on it).
 export * from "./auth-keys.ts";
+// stt.ts (local STT wave, 2026-10-27): the local dictation model's identity
+// + status shape — pure, browser-safe (Settings row + dictation button).
+export * from "./stt.ts";
 // keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).
 export * from "./keyboard.ts";
 export * from "./coverage.ts";

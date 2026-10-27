@@ -188,7 +188,7 @@ flowchart LR
         FS["fs stores — src/store (data/)"]
         LLM["LLM engines — pi-ai/OpenRouter via piEngineFor"]
         HEAD["headless Chrome — demo verify · SVG render"]
-        DEEP["Deepgram STT — token-minting route, browser-side WebSocket"]
+        STT["local STT — sherpa-onnx (Parakeet + Silero VAD), opt-in model in data/models"]
         WEB["web tools — Google CSE + Readability/Jina (researcher)"]
     end
 
@@ -204,7 +204,7 @@ flowchart LR
     GBRAIN --> LLM
     SESS --> HEAD
     SESS --> WEB
-    BROWSER --> DEEP
+    HTTP --> STT
 ```
 
 ---
@@ -407,12 +407,11 @@ Practice turns the graph into problem sets the learner reasons through out loud.
 ```mermaid
 flowchart LR
     subgraph DESKTOP["Electron app (production)"]
-        MAIN["Electron main (electron/main.cjs)<br/>launcher + credential/security owner<br/>origin-pinned controls · private child IPC"] -->|"spawn: ELECTRON_RUN_AS_NODE,<br/>loopback port, LH_DATA_DIR=userData/data"| NEXT["standalone Next server (child)<br/>ALL app logic: turns · extraction · jobs · graph"]
-        MAIN -->|"loadURL, sandboxed renderer"| REND["Browser renderer (components/)<br/>fetch/WebSocket to own origin only"]
+        MAIN["Electron main (electron/main.cjs)<br/>launcher + credential/security owner<br/>origin-pinned controls · private child IPC"] -->|"spawn: ELECTRON_RUN_AS_NODE,<br/>loopback port, LH_DATA_DIR=userData/data"| NEXT["standalone Next server (child)<br/>ALL app logic: turns · extraction · jobs · graph · local dictation"]
+        MAIN -->|"loadURL, sandboxed renderer"| REND["Browser renderer (components/)<br/>fetch to own origin only (dictation audio included)"]
     end
     subgraph OUTSIDE["outside the process"]
         OR["OpenRouter (BYOK key from auth.json, env-injected — never argv)"]
-        DG["Deepgram STT (browser-direct WebSocket)"]
         GCSE["Google CSE / Jina (researcher tools)"]
         CHROME["system Chrome (headless: demo verify · SVG render)"]
         DISK["data/ ledgers (via LH_DATA_DIR seam)"]
@@ -421,7 +420,6 @@ flowchart LR
     NEXT --> GCSE
     NEXT --> CHROME
     NEXT --> DISK
-    REND --> DG
     REND -->|"fetch /api/*"| NEXT
 ```
 

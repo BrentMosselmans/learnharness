@@ -17,6 +17,8 @@
  *    stored, otherwise it lives in the Add dropdown like everyone else.
  *  - Providers groups API keys, subscriptions, dictation and search.
  *    Unknown variables stay masked/read-only at the end of Model API keys.
+ *  - Dictation holds no key since the local STT wave (owner 2026-10-27):
+ *    its row is the opt-in local speech model (SpeechModelRow).
  *
  * API: GET /api/keys (masked statuses + the providers array), PUT
  * /api/keys/:id (shape-gated 400s land inline), DELETE. Saves take
@@ -24,9 +26,10 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { AUTH_KEYS, type AuthKeyStatus } from "@/src/core";
+import { AUTH_KEYS, STT_MODEL_ROW, type AuthKeyStatus } from "@/src/core";
 import { SettingsGroup } from "./controls.tsx";
 import { SubscriptionConnections } from "./subscription-connections.tsx";
+import { SpeechModelRow } from "./speech-model-row.tsx";
 import { ProviderMenuList } from "./model-menu.tsx";
 import { MenuShell } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
@@ -317,7 +320,7 @@ function AddProviderRow({
 
 export function KeysSection({
 	/** A deep-linked row to unfold on arrival (zero-keys wave): the
-	 *  dictation error's click lands here on DEEPGRAM_API_KEY. Followed
+	 *  dictation error's click lands here on STT_MODEL_ROW. Followed
 	 *  while mounted too — the settings dialog's while-open retarget
 	 *  pattern. undefined = nothing seeded. */
 	initialRow,
@@ -459,8 +462,12 @@ export function KeysSection({
 				<SubscriptionConnections />
 			</SettingsGroup>
 
-			{(["Dictation", "Search"] as const).map((label) => <SettingsGroup key={label} label={label} testid={label === "Dictation" ? "group-dictation" : "group-search"}>
-				{toolRows.filter((status) => label === "Dictation" ? status.id === "DEEPGRAM_API_KEY" : status.id !== "DEEPGRAM_API_KEY").map((status) => (
+			<SettingsGroup label="Dictation" testid="group-dictation">
+				<SpeechModelRow focus={initialRow === STT_MODEL_ROW} />
+			</SettingsGroup>
+
+			<SettingsGroup label="Search" testid="group-search">
+				{toolRows.map((status) => (
 					<KeyTableRow
 						key={status.id}
 						label={status.info?.label ?? status.id}
@@ -478,7 +485,7 @@ export function KeysSection({
 						testid={`key-${status.id.toLowerCase()}`}
 					/>
 				))}
-			</SettingsGroup>)}
+			</SettingsGroup>
 
 		</>
 	);

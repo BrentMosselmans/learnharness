@@ -248,15 +248,20 @@ describe("classifyKeys — the Keys section's two-group projection", () => {
 	});
 
 	it("curated tool ids always render (synthesized when absent)", () => {
-		const out = classifyKeys([synth("DEEPGRAM_API_KEY", true)], undefined);
+		const out = classifyKeys([synth("TAVILY_API_KEY", true)], undefined);
 		assert.deepEqual(out.toolRows.map((r) => r.id), [
-			"DEEPGRAM_API_KEY",
 			"TAVILY_API_KEY",
 			"BRAVE_API_KEY",
 			"EXA_API_KEY",
 		]);
 		assert.ok(out.toolRows[0]!.present);
 		assert.ok(!out.toolRows[1]!.present);
+	});
+
+	it("a leftover DEEPGRAM_API_KEY shows as an unknown var (owner, local STT wave 2026-10-27)", () => {
+		const out = classifyKeys([{ ...synth("DEEPGRAM_API_KEY", true), info: null }], providers);
+		assert.deepEqual(out.unknownRows.map((r) => r.id), ["DEEPGRAM_API_KEY"]);
+		assert.ok(!out.toolRows.some((r) => r.id === "DEEPGRAM_API_KEY"));
 	});
 
 	it("unknown file vars surface read-only, out of the provider rows", () => {
